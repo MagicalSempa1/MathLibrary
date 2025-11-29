@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MathLibrary.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -11,41 +12,45 @@ namespace MathLibrary.Factorization
     {
         public static BigInteger[] FermatMethod(BigInteger n)
         {
-            List<BigInteger> primes = new List<BigInteger>();
-            while (n % 2 == 0)
+            var primes = new List<BigInteger>();
+            while (n.IsEven)
             {
                 primes.Add(2);
                 n /= 2;
             }
             if (n == 1)
-                return primes.ToArray();
-            BigInteger sqrt = n.CeillingSqrt();
-            if (n == sqrt * sqrt)
-                return new BigInteger[] { sqrt, sqrt };
-            var x = sqrt * sqrt - n;
+                return [.. primes];
+            BigInteger x = n.CeilingSqrt();
+            if (n == x * x)
+                return [.. primes, x, x];
+            var y2 = x * x - n;
             BigInteger y = 0;
             for (int k = 0; k < n; k++)
             {
-                if (x.IsSqrt(ref y))
+                if (y2.IsSqrt(ref y))
                 {
-                    x = (x + n).FloorSqrt();
-                    var gcd = BigInteger.GreatestCommonDivisor(x - y, n);
+                    y2 = (y2 + n).FloorSqrt();
+                    var gcd = BigInteger.GreatestCommonDivisor(y2 - y, n);
                     if (gcd != 1 & gcd != n)
                     {
                         primes.Add(gcd);
                         n /= gcd;
+                        primes.Add(n);
+                        return [.. primes];
                     }
-                    gcd = BigInteger.GreatestCommonDivisor(x + y, n);
+                    gcd = BigInteger.GreatestCommonDivisor(y2 + y, n);
                     if (gcd != 1 & gcd != n)
                     {
                         primes.Add(gcd);
                         n /= gcd;
+                        primes.Add(n);
+                        return [.. primes];
                     }
-                    return primes.ToArray();
                 }
-                x += ((sqrt + k) << 1) + 1;
+                x++;
+                y2 += (x << 1) - 1;
             }
-            return primes.ToArray();
+            return [.. primes];
         }
 
     }

@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using MathLibrary.Extensions;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MathLibrary.Factorization
 {
@@ -11,11 +7,12 @@ namespace MathLibrary.Factorization
     {
         public static BigInteger[] SQUFOFMethod(BigInteger n)
         {
+            if (n <= 1) return [];
             var primes = new List<BigInteger>();
-            while (n % 2 == 0)
+            while (n.IsEven)
             {
                 primes.Add(2);
-                n /= 2;
+                n >>= 1;
             }
             while (n % 3 == 0)
             {
@@ -38,61 +35,113 @@ namespace MathLibrary.Factorization
                 n /= 11;
             }
             if (n == 1)
-                return primes.ToArray();
+                return [.. primes];
             if (PrimalityTests.MillerTest(n))
             {
                 primes.Add(n);
-                return primes.ToArray();
+                return [.. primes];
             }
-            var root = n.FloorSqrt();
-            if (root * root == n)
+            BigInteger root = 0;
+            if (n.IsSqrt(ref root))
             {
-                primes.AddRange(new[] { root, root });
-                return primes.ToArray();
+                primes.AddRange([root, root]);
+                return [.. primes];
             }
-            var multiplyers = new[] {1, 3, 5, 7,
+            int[] multipliers = [1, 3, 5, 7,
                 11, 3*5, 3*7, 3*11,
                 5*7, 5*11, 7*11,
                 3*5*7, 3*5*11, 3*7*11,
-                5*7*11, 3*5*7*11 };
-            for (int i = 0; i < multiplyers.Length; i++)
+                5*7*11, 3*5*7*11];
+
+            var entries = new (int k, BigInteger nk, BigInteger root, BigInteger Q,
+                   int jacobi, bool noAmb2)[multipliers.Length];
+
+            for (int i = 0; i < multipliers.Length; i++)
             {
-                var nk = n * multiplyers[i];
-                root = nk.FloorSqrt();
-                (BigInteger p0, BigInteger p1) Pk = (0, root);
-                (BigInteger q0, BigInteger q1) Qk = (1, nk - root * root);
+                int k = multipliers[i];
+                var nk = n * k;
+                var r0 = nk.FloorSqrt();
+                var q0 = nk - r0 * r0;
+                var jacobi = Functions.ArithmeticFunctions.MollerJacobiSymbol(k, n);
+                var noAmb2 = TwoIsInert(nk);
+                entries[i] = (k, nk, r0, q0, jacobi, noAmb2);
+            }
+
+            Array.Sort(entries, (a, b) =>
+            {
+                int riskA = (a.jacobi == 1 && !a.noAmb2 && a.Q <= 9) ? 1 : 0;
+                int riskB = (b.jacobi == 1 && !b.noAmb2 && b.Q <= 9) ? 1 : 0;
+                int byRisk = riskA.CompareTo(riskB);
+                return byRisk != 0 ? byRisk : a.Q.CompareTo(b.Q);
+            });
+
+
+            for (int i = 0; i < entries.Length; i++)
+            {
+                var nk = entries[i].nk;
+                root = entries[i].root;
+                BigInteger Pprev = root, P = root, Qprev = 1, Q = entries[i].Q, q, b;
+                if (Q == 0 || Q == 1) continue;
                 BigInteger d = 0;
-                do
+                for (; ; )
                 {
-                    Pk.p0 = root - (root + Pk.p1) % Qk.q1;
-                    Qk.q0 = (nk - Pk.p0 * Pk.p0) / Qk.q1;
-                    Pk.p1 = root - (root + Pk.p0) % Qk.q0;
-                    Qk.q1 = (nk - Pk.p1 * Pk.p1) / Qk.q0;
-                } while (!Qk.q0.IsSqrt(ref d));
+                    b = (root + P) / Q;
+                    P = b * Q - P;
+                    q = Q;
+                    Q = Qprev + b * (Pprev - P);
+                    if (Q.IsSqrt(ref d))
+                        break;
+                    Qprev = q;
+                    Pprev = P;
+                    b = (root + P) / Q;
+                    P = b * Q - P;
+                    q = Q;
+                    Q = Qprev + b * (Pprev - P);
+                    Qprev = q;
+                    Pprev = P;
+                }
                 if (d == 1)
                     continue;
                 var gcd = BigInteger.GreatestCommonDivisor(n, d);
                 if (gcd != 1 && gcd != n)
                 {
-                    primes.AddRange(new[] { gcd, n / gcd });
-                    return primes.ToArray();
+                    primes.AddRange([gcd, n / gcd]);
+                    return [.. primes];
                 }
-                Pk.p0 = -Pk.p0;
-                Qk.q0 = d;
-                Pk.p1 = root - (Pk.p0 + root) % Qk.q0;
-                Qk.q1 = (nk - Pk.p1 * Pk.p1) / Qk.q0;
+                b = (root - P) / d;
+                Pprev = P = b * d + P;
+                Qprev = d;
+                Q = (nk - Pprev * Pprev) / Qprev;
                 do
                 {
-                    Pk = (Pk.p1, root - (root + Pk.p1) % Qk.q1);
-                    Qk = (Qk.q1, (nk - Pk.p1 * Pk.p1) / Qk.q1);
-                } while (Pk.p0 != Pk.p1);
-                gcd = BigInteger.GreatestCommonDivisor(Qk.q0, n);
+                    b = (root + P) / Q;
+                    Pprev = P;
+                    P = b * Q - P;
+                    q = Q;
+                    Q = Qprev + b * (Pprev - P);
+                    Qprev = q;
+                } while (P != Pprev);
+                gcd = BigInteger.GreatestCommonDivisor(Qprev, n);
                 if (gcd == 1 || gcd == n)
                     continue;
-                primes.AddRange(new[] { gcd, n / gcd });
-                return primes.ToArray();
+                if (PrimalityTests.MillerTest(gcd))
+                    primes.Add(gcd);
+                else
+                    primes.AddRange(SQUFOFMethod(gcd));
+                n /= gcd;
+                if (PrimalityTests.MillerTest(n))
+                    primes.Add(n);
+                else
+                    primes.AddRange(SQUFOFMethod(n));
+                return [.. primes];
             }
-            throw new Exception("factor is not found");
+            throw new InvalidOperationException("SQUFOF failed to find a factor with given multipliers");
+        }
+
+        private static bool TwoIsInert(BigInteger kn)
+        {
+            var DeltaMod8 = ((kn & 3) == 1) ? (kn & 7) : ((kn << 2) & 7);
+            return DeltaMod8 == 5;
         }
     }
 }

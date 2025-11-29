@@ -5,9 +5,9 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace MathLibrary
+namespace MathLibrary.Extensions
 {
-    public static class Extensions
+    public static partial class Extensions
     {
         public static UInt128 FloorSqrt(this UInt128 n)
         {
@@ -106,7 +106,7 @@ namespace MathLibrary
                 throw new Exception("square root of negative number");
         }
 
-        public static BigInteger CeillingSqrt(this BigInteger n)
+        public static BigInteger CeilingSqrt(this BigInteger n)
         {
             if (n == 0)
                 return 0;
@@ -125,6 +125,7 @@ namespace MathLibrary
                 return 0;
             if (n > 0)
             {
+                if (k == 2) return n.FloorSqrt();
                 if (n < uint.MaxValue)
                     return (BigInteger)Math.Pow((uint)n, 1.0 / k);
                 BigInteger x = BigInteger.One << (int)Math.Ceiling(n.GetBitLength() / (double)k);
@@ -140,7 +141,7 @@ namespace MathLibrary
                 throw new Exception("input number is negative");
         }
 
-        public static BigInteger CeillingNroot(this BigInteger n, int k)
+        public static BigInteger CeilingNroot(this BigInteger n, int k)
         {
             if (n == 0)
                 return 0;
@@ -180,43 +181,41 @@ namespace MathLibrary
             return (long)Math.Pow((long)Math.Sqrt(n), 2) == n;
         }
 
+        private static bool[] rem64 = new bool[] { true, true, false, false, true, false, false, false, false, true, false, false, false, false, false, false, true, true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, true, false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false, false, false, false };
+        private static bool[] rem63 = new bool[] { true, true, false, false, true, false, false, true, false, true, false, false, false, false, false, false, true, false, true, false, false, false, true, false, false, true, false, false, true, false, false, false, false, false, false, false, true, true, false, false, false, false, false, true, false, false, true, false, false, true, false, false, false, false, false, false, false, false, true, false, false, false, false };
+        private static bool[] rem65 = new bool[] { true, true, false, false, true, false, false, false, false, true, true, false, false, false, true, false, true, false, false, false, false, false, false, false, false, true, true, false, false, true, true, false, false, false, false, true, true, false, false, true, true, false, false, false, false, false, false, false, false, true, false, true, false, false, false, true, true, false, false, false, false, true, false, false, true };
+        private static bool[] rem11 = new bool[] { true, true, false, true, true, true, false, false, false, true, false };
+
         public static bool IsSqrt(this BigInteger n)
         {
-            var r = n % 64;
-            if (r != 0 && r != 1 && r != 4 && r != 9 && r != 16 && r != 25 && r != 36 && r != 49
-                && r != 17 && r != 33 && r != 41 && r != 57)
+            var t = (int)(n % 2882880);
+            if (!rem64[t & 63])
                 return false;
-            var t = n % 45045;
-            r = t % 63;
-            if (r != 0 && r != 1 && r != 4 && r != 7 && r != 9 && r != 16 && r != 18 && r != 22 && r != 25 && r != 28 && r != 36 && r != 37 && r != 43 && r != 46 && r != 49 && r != 58)
+            if (!rem63[t % 63])
                 return false;
-            r = t % 65;
-            if (r != 0 && r != 1 && r != 4 && r != 9 && r != 10 && r != 14 && r != 16 && r != 25 && r != 26 && r != 29 && r != 30 && r != 35 && r != 36 && r != 39 && r != 40 && r != 49 && r != 51 && r != 55 && r != 56 && r != 61 && r != 64)
+            if (!rem65[t % 65])
                 return false;
-            r = t % 11;
-            if (r == 2 || r == 6 || r == 7 || r == 8 || r == 10)
+            if (!rem11[t % 11])
                 return false;
-            return BigInteger.Pow(n.FloorSqrt(), 2) == n;
+            var sqrt = n.FloorSqrt();
+            return sqrt * sqrt == n;
         }
 
-        public static bool IsSqrt(this BigInteger n, ref BigInteger root)
+
+
+        public static bool IsSqrt(this in BigInteger n, ref BigInteger root)
         {
-            var r = (int)(n % 64);
-            if (r != 0 && r != 1 && r != 4 && r != 9 && r != 16 && r != 25 && r != 36 && r != 49
-                && r != 17 && r != 33 && r != 41 && r != 49 && r != 57)
+            var t = (int)(n % 2882880);
+            if (!rem64[t & 63])
                 return false;
-            var t = (int)(n % 45045);
-            r = t % 63;
-            if (r != 0 && r != 1 && r != 4 && r != 7 && r != 9 && r != 16 && r != 18 && r != 22 && r != 25 && r != 28 && r != 36 && r != 37 && r != 43 && r != 46 && r != 49 && r != 58)
+            if (!rem63[t % 63])
                 return false;
-            r = t % 65;
-            if (r != 0 && r != 1 && r != 4 && r != 9 && r != 10 && r != 14 && r != 16 && r != 25 && r != 26 && r != 29 && r != 30 && r != 35 && r != 36 && r != 39 && r != 40 && r != 49 && r != 51 && r != 55 && r != 56 && r != 61 && r != 64)
+            if (!rem65[t % 65])
                 return false;
-            r = t % 11;
-            if (r == 2 || r == 6 || r == 7 || r == 8 || r == 10)
+            if (!rem11[t % 11])
                 return false;
             root = n.FloorSqrt();
-            return BigInteger.Pow(root, 2) == n;
+            return root * root == n;
         }
 
         public static bool IsSqrt(this long n, ref long root)
@@ -235,7 +234,7 @@ namespace MathLibrary
             r = t % 11;
             if (r == 2 || r == 6 || r == 7 || r == 8 || r == 10)
                 return false;
-            root = (long)Math.Round(Math.Sqrt(n));
+            root = (long)Math.Sqrt(n);
             return root * root == n;
         }
 
@@ -277,57 +276,6 @@ namespace MathLibrary
                 return false;
             root = n.FloorSqrt();
             return root * root == n;
-        }
-
-        public static bool WithoutSquares(this BigInteger n)
-        {
-            for (BigInteger i = 4, k = 5; i <= n; i += k, k += 2)
-            {
-                //(n + 1) ^ 2 = n ^ 2 + 2n + 1
-                // (6k + 1) ^ 2 = (6k) ^ 2 + 12k + 1
-                if (n % i == 0)
-                    return false;
-            }
-            return true;
-        }
-
-        public static bool IsPowerOfNumber(this BigInteger n)
-        {
-            if (n == 1)
-                return true;
-            if (n.IsPowerOfTwo)
-                return n != 2;
-            var lgn = Math.Ceiling(BigInteger.Log(n, 2));
-            for (int b = 2; b <= lgn; b++)
-            {
-                int lowa = 1;
-                var higha = 1 << (int)(lgn / b + 1);
-                while (lowa < higha - 1)
-                {
-                    var mida = (lowa + higha) >> 1;
-                    var ab = BigInteger.Pow(mida, b);
-                    if (ab > n)
-                        higha = mida;
-                    else if (ab < n)
-                        lowa = mida;
-                    else
-                        return true;
-                }
-            }
-            return false;
-        }
-
-        public static double ForwardFiniteDifference(this Func<double, double> function, int n, int k, double x_0, double h, int order)
-        {
-            if (k < 0 & k > n - order)
-                throw new Exception();
-            if (order == 0)
-                return function(x_0);
-            if (order == 1)
-                return function(x_0 + (k + 1) * h) - function(x_0 + k * h);
-            if (n - order >= 0)
-                return ForwardFiniteDifference(function, n, k + 1, x_0, h, order - 1) - ForwardFiniteDifference(function, n, k, x_0, h, order - 1);
-            throw new Exception();
         }
     }
 }

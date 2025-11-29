@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MathLibrary.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -11,10 +12,23 @@ namespace MathLibrary.Factorization
     {
         public static BigInteger[] EnumerateMethod(BigInteger n)
         {
-            if (n == 2 | n == 3)
-                return new BigInteger[] { n };
-            List<BigInteger> primes = new List<BigInteger>();
+            if (n <= 1) return [];
+            if (n == 2 || n == 3)
+                return [n];
             BigInteger sqrt = n.FloorSqrt();
+            if (sqrt * sqrt == n)
+            {
+                if (PrimalityTests.MillerTest(sqrt))
+                    return [sqrt, sqrt];
+                else
+                {
+                    var result = EnumerateMethod(sqrt);
+                    result = [.. result, ..result];
+                    Array.Sort(result);
+                    return result;
+                }
+            }
+            List<BigInteger> primes = [];
             if (sqrt <= uint.MaxValue)
                 primes.AddRange(PartialTrialDivision(ref n, (uint)sqrt));
             else if (sqrt <= ulong.MaxValue)
@@ -25,7 +39,7 @@ namespace MathLibrary.Factorization
                 primes.AddRange(PartialTrialDivision(ref n, sqrt));
             if (n != 1)
                 primes.Add(n);
-            return primes.ToArray();
+            return [.. primes];
         }
 
     }

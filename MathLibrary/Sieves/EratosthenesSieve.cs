@@ -9,27 +9,60 @@ namespace MathLibrary
 {
     public static partial class Sieves
     {
-        public static int[] EratosthenesSieve(int limit, Predicate<int>? predicate = null)
+        public static int[] EratosthenesSieve(int limit)
         {
             if (limit < 2)
-                return Array.Empty<int>();
+                return [];
 
-            var isComposite = new BitArray(limit + 1);
-            List<int> primes = new List<int>();
+            const int segmentSize = 65536;
+            var primes = new List<int>();
 
-            for (int i = 2; i <= limit; i++)
+            int sqrtLimit = (int)Math.Sqrt(limit);
+            var isPrime = new BitArray(sqrtLimit + 1, true);
+
+            isPrime[0] = isPrime[1] = false;
+            for (int p = 2; p * p <= sqrtLimit; p++)
+                if (isPrime[p])
+                    for (int i = p * p; i <= sqrtLimit; i += p)
+                        isPrime[i] = false;
+
+            var basePrimes = new List<int>();
+            for (int p = 2; p <= sqrtLimit; p++)
+                if (isPrime[p])
+                    basePrimes.Add(p);
+            primes.AddRange(basePrimes);
+
+            var segment = new BitArray(segmentSize);
+            long low = sqrtLimit + 1;
+            long high = low + segmentSize - 1;
+
+            while (low <= limit)
             {
-                if (!isComposite[i])
-                {
-                    if (predicate == null || predicate(i))
-                        primes.Add(i);
+                if (high > limit)
+                    high = limit;
 
-                    for (int j = i << 1; j <= limit; j += i)
-                        isComposite[j] = true;
+                segment.SetAll(true);
+
+                for (int i = 0; i < basePrimes.Count; i++)
+                {
+                    int p = basePrimes[i];
+                    long start = (long)Math.Floor((double)low / p) * p;
+                    if (start < low)
+                        start += p;
+
+                    for (long j = start; j <= high; j += p)
+                        segment[(int)(j - low)] = false;
                 }
+
+                for (int i = 0; i < (int)(high - low + 1); i++)
+                    if (segment[i])
+                        primes.Add((int)(low + i));
+
+                low += segmentSize;
+                high += segmentSize;
             }
 
-            return primes.ToArray();
+            return [.. primes];
         }
     }
 }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -68,8 +69,8 @@ namespace MathLibrary
             };
             BigInteger Fibonacci(BigInteger k)
             {
-                if (F.ContainsKey(k))
-                    return F[k];
+                if (F.TryGetValue(k, out BigInteger value))
+                    return value;
                 if (k.IsEven)
                 {
                     if (!F.ContainsKey((k >> 1) - 1))
@@ -133,8 +134,8 @@ namespace MathLibrary
             };
             BigInteger Fibonacci(BigInteger k)
             {
-                if (F.ContainsKey(k))
-                    return F[k];
+                if (F.TryGetValue(k, out BigInteger value))
+                    return value;
                 if (k % 3 == 0)
                 {
                     if (!F.ContainsKey(k / 3))
@@ -186,25 +187,19 @@ namespace MathLibrary
 
         public static BigInteger P(int n)
         {
-            if (n == 0 || n == 1)
-                return 1;
+            //ArgumentOutOfRangeException.ThrowIfNegative(n);
+            if (n == 0 || n == 1) return 1;
             BigInteger[] P = new BigInteger[n];
-            P[0] = 1;
-            P[1] = 1;
+            P[0] = 1; P[1] = 1;
             BigInteger Partition(int k)
             {
-                if (k < 0)
-                    return 0;
-                if (k < n)
-                {
-                    if (P[k] != 0)
-                        return P[k];
-                }
+                if (k < 0) return 0;
+                if (k < n && P[k] != 0) return P[k];
                 BigInteger result = 0;
-                List<(int, int, int)> list = new List<(int, int, int)>();
+                var list = new List<(int, int, int)>();
                 for (int f = 1, q = 1; f <= k; f += 3 * q + 1, q++)
                 {
-                    if (q % 2 == 1)
+                    if ((q & 1) == 1)
                         list.Add((1, k - f - q, k - f));
                     else
                         list.Add((-1, k - f - q, k - f));
@@ -220,11 +215,49 @@ namespace MathLibrary
                     else
                         result += list[i].Item1 * Partition(list[i].Item3);
                 }
-                if (k != n)
-                    P[k] = result;
+                if (k != n) P[k] = result;
+                
                 return result;
             }
             return Partition(n);
+        }
+
+        public static BigInteger NewP(int n)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(n);
+            var dp = new BigInteger[n + 1];
+            dp[0] = BigInteger.One;
+
+            for (int i = 1; i <= n; i++)
+            {
+                BigInteger sum = BigInteger.Zero;
+
+                long g1 = 1, g2 = 2;
+                long inc1 = 4, inc2 = 5;
+                bool isPos = true;
+
+                while (g1 <= i)
+                {
+                    if (isPos)
+                    {
+                        sum += dp[i - (int)g1];
+                        if (g2 <= i) sum += dp[i - (int)g2];
+                    }
+                    else
+                    {
+                        sum -= dp[i - (int)g1];
+                        if (g2 <= i) sum -= dp[i - (int)g2];
+                    }
+
+                    g1 += inc1; inc1 += 3;
+                    g2 += inc2; inc2 += 3;
+                    isPos = !isPos;
+                }
+
+                dp[i] = sum;
+            }
+
+            return dp[n];
         }
 
         public static BigInteger StirlingNumberOfFirstKind(BigInteger n, BigInteger k)
@@ -246,11 +279,11 @@ namespace MathLibrary
             for (BigInteger i = 0; i <= k; i++)
             {
                 if ((k + i) % 2 == 0)
-                    result += Functions.Binomial(k, i) * i.Pow(n);
+                    result += OtherFunctions.Binomial(k, i) * i.Pow(n);
                 else
-                    result -= Functions.Binomial(k, i) * i.Pow(n);
+                    result -= OtherFunctions.Binomial(k, i) * i.Pow(n);
             }
-            return result / Functions.Factorial((int)k);
+            return result / OtherFunctions.Factorial((int)k);
         }
 
         public static BigInteger Fusc(BigInteger n)

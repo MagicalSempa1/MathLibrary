@@ -12,8 +12,7 @@ namespace MathLibrary
         {
             double h = (b - a) / N;
             double S = 0;
-            for (int i = 0; i < N; i++)
-                S += function(a + i * h);
+            for (int i = 0; i < N; i++) S += function(a + i * h);
             return h * S;
         }
 
@@ -21,8 +20,7 @@ namespace MathLibrary
         {
             double h = (b - a) / N;
             double S = 0;
-            for (int i = 1; i <= N; i++)
-                S += function(a + i * h);
+            for (int i = 1; i <= N; i++) S += function(a + i * h);
             return h * S;
         }
 
@@ -30,8 +28,7 @@ namespace MathLibrary
         {
             double h = (b - a) / N;
             double S = 0;
-            for (int i = 0; i < N; i++)
-                S += function(a + (i + 0.5) * h);
+            for (int i = 0; i < N; i++) S += function(a + (i + 0.5) * h);
             return h * S;
         }
 
@@ -39,15 +36,14 @@ namespace MathLibrary
         {
             double h = (b - a) / N;
             double S = (function(a) + function(b)) / 2;
-            for (int i = 1; i < N; i++)
-                S += function(a + i * h);
+            for (int i = 1; i < N; i++) S += function(a + i * h);
             return h * S;
         }
 
         public static double SimpsonMethod(Func<double, double> function, double a, double b, int N)
         {
-            if (N % 2 == 1)
-                throw new Exception("N должно быть чётным!!!");
+            if ((N & 1) == 1)
+                throw new ArgumentException("N должно быть чётным!!!");
             double h = (b - a) / N;
             double S = function(a) + function(b);
             for (int i = 1; i <= (N >> 1) - 1; i++)
@@ -55,22 +51,46 @@ namespace MathLibrary
             return h * (S + 4 * function(b - h)) / 3;
         }
 
-        public static double RombergMethod(Func<double, double> function, double a, double b, int n, int m)
+        public static double RombergMethod(Func<double, double> f, double a, double b, int n, int m)
         {
-            double h = (b - a) / (1 << n);
-            if (m == 0)
+            if (n < 0) throw new ArgumentOutOfRangeException(nameof(n), "n должно быть ≥ 0");
+            if (m < 0) throw new ArgumentOutOfRangeException(nameof(m), "m должно быть ≥ 0");
+            if (a == b) return 0.0;
+
+            if (m > n) m = n;
+
+            if (n > 30) throw new ArgumentOutOfRangeException(nameof(n), "n > 30 приведёт к переполнению 1 << (i-1)");
+
+            var prev = new double[m + 1];
+            var curr = new double[m + 1];
+
+            double h = b - a;
+            double fa = f(a), fb = f(b);
+            prev[0] = 0.5 * h * (fa + fb);
+
+            for (int i = 1; i <= n; i++)
             {
-                if (n == 0)
-                    return (b - a) * (function(a) + function(b)) / 2;
-                else
+                h *= 0.5;
+                int numNewPts = 1 << (i - 1);
+                double sum = 0.0;
+
+                for (int k = 1; k <= numNewPts; k++)
+                    sum += f(a + (2 * k - 1) * h);
+
+                curr[0] = 0.5 * prev[0] + h * sum;
+
+                double pow4 = 1.0;
+                int maxJ = Math.Min(i, m);
+                for (int j = 1; j <= maxJ; j++)
                 {
-                    double s = 0;
-                    for (int k = 1; k <= 1 << (n - 1); k++)
-                        s += function(a + (2 * k - 1) * h);
-                    return RombergMethod(function, a, b, n - 1, 0) / 2 + h * s;
+                    pow4 *= 4.0;
+                    curr[j] = curr[j - 1] + (curr[j - 1] - prev[j - 1]) / (pow4 - 1.0);
                 }
+
+                (curr, prev) = (prev, curr);
             }
-            return RombergMethod(function, a, b, n, m - 1) + (RombergMethod(function, a, b, n, m - 1) - RombergMethod(function, a, b, n - 1, m - 1)) / (System.Math.Pow(4, m) - 1);
+
+            return prev[m];
         }
     }
 

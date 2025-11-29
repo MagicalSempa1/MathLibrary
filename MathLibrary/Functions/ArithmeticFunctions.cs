@@ -1,8 +1,9 @@
 ﻿using System.Collections;
 using System.Numerics;
+using MathLibrary.Extensions;
 using MathLibrary.Factorization;
 
-namespace MathLibrary
+namespace MathLibrary.Functions
 {
     public static partial class ArithmeticFunctions
     {
@@ -64,10 +65,10 @@ namespace MathLibrary
                 return 0;
             BigInteger result = 0;
             var sqrt = n.FloorSqrt();
-            if (n % 2 == 0)
+            if (n.IsEven)
             {
                 result++;
-                while (n % 2 == 0)
+                while (n.IsEven)
                     n >>= 1;
             }
             for (BigInteger i = 3; i <= sqrt; i += 2)
@@ -114,7 +115,7 @@ namespace MathLibrary
                 return 1;
             if (!n.WithoutSquares())
                 return 0;
-            return SmallOmegaFunction(n) % 2 == 1 ? -1 : 1;
+            return SmallOmegaFunction(n).IsEven ? +1 : -1;
         }
 
         public static int LiouvilleFunction(BigInteger n)
@@ -132,63 +133,13 @@ namespace MathLibrary
             return result;
         }
 
-        public static long MertensFunction(long n)
-        {
-            int result = 1;
-            var primes = Sieves.AtkinSieve(n);
-            var mu = new int[n + 1];
-            for (int i = 0; i < primes.Length; i++)
-            {
-
-            }
-            return result;
-        }
-
-        public static int PrimeCountingFunction(int n)
-        {
-            int result = 0;
-            var sieve = new BitArray(n + 1);
-            for (int x2 = 1, dx2 = 3; x2 < n; x2 += dx2, dx2 += 2)
-                for (int y2 = 1, dy2 = 3, m; y2 < n; y2 += dy2, dy2 += 2)
-                {
-                    m = (x2 << 2) + y2;
-                    if (m <= n && (m % 12 == 1 || m % 12 == 5))
-                        sieve[m] ^= true;
-                    m -= x2;
-                    if (m <= n && m % 12 == 7)
-                        sieve[m] ^= true;
-                    if (x2 > y2)
-                    {
-                        m -= y2 << 1;
-                        if (m <= n && m % 12 == 11)
-                            sieve[m] ^= true;
-                    }
-                }
-            int r = 5;
-            for (int r2 = r * r, dr2 = (r << 1) + 1; r2 < n; ++r, r2 += dr2, dr2 += 2)
-                if (sieve[r])
-                    for (int mr2 = r2; mr2 < n; mr2 += r2)
-                        sieve[mr2] = false;
-            if (n >= 2)
-                sieve[2] = true;
-            if (n >= 3)
-                sieve[3] = true;
-            for (int i = 0; i < sieve.Length; i++)
-            {
-                if (sieve[i])
-                    result++;
-            }
-            return result;
-        }
-
-        public static BigInteger InverseElement(this BigInteger a, BigInteger m)
+        public static BigInteger Inverse(this BigInteger a, BigInteger m)
         {
             (BigInteger u, BigInteger w) = (1, 0);
             BigInteger b = a;
             while (m != 0)
             {
-                BigInteger r;
-                var q = BigInteger.DivRem(b, m, out r);
+                var q = BigInteger.DivRem(b, m, out BigInteger r);
                 b = m;
                 m = r;
                 (u, w) = (w, u - q * w);
@@ -196,6 +147,39 @@ namespace MathLibrary
             return u;
         }
 
+        public static int Inverse(this BigInteger a, int m)
+        {
+            (int u, int w) = (1, 0);
+            int b = (int)(a % m);
+            while (m != 0)
+            {
+                var q = Math.DivRem(b, m, out int r);
+                b = m;
+                m = r;
+                (u, w) = (w, u - q * w);
+            }
+            return u;
+        }
+
+        public static int Inverse(this int a, int m)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(m);
+            int u = 1, w = 0;
+
+            int r0 = a % m; if (r0 < 0) r0 += m;
+            int r1 = m;
+
+            while (r1 != 0)
+            {
+                int q = Math.DivRem(r0, r1, out int rem);
+                (r0, r1) = (r1, rem);
+                (u, w) = (w, u - q * w);
+            }
+
+            if (r0 != 1) return 0;
+            u %= m; if (u < 0) u += m;
+            return u;
+        }
         public static BigInteger InverseElement(this BigInteger a, BigInteger n, BigInteger p) => BigInteger.ModPow(a, p - 1 - n % p, p);
 
         public static BigInteger[] InverseElements(this ulong m)
@@ -209,25 +193,9 @@ namespace MathLibrary
 
         public static int LegendreSymbol(BigInteger a, BigInteger p)
         {
-            if (a == 1 || p == 2)
+            if (p == 2)
                 return 1;
-            if (a % p == 0)
-                return 0;
-            if (a % p == 2)
-            {
-                var t = p % 8;
-                return t == 1 || t == 7 ? 1 : -1;
-            }
-            if (a % p == 3)
-            {
-                if (p % 12 == 1 || p % 12 == 11)
-                    return 1;
-                if (p % 12 == 5 || p % 12 == 7)
-                    return -1;
-            }
-            if (a % p == p - 1)
-                return (p - 1 >> 1).IsEven ? 1 : -1;
-            return BigInteger.ModPow(a, p - 1 >> 1, p) == 1 ? 1 : -1;
+            return MollerJacobiSymbol(a, p);
         }
 
         public static int KroneckerSymbol(BigInteger a, BigInteger n)
@@ -347,7 +315,7 @@ namespace MathLibrary
             for (int i = 0; i < system.Length; i++)
             {
                 Mi = M / system[i].m;
-                result += system[i].a * Mi * Mi.InverseElement(system[i].m) % M;
+                result += system[i].a * Mi * Mi.Inverse(system[i].m) % M;
             }
             return result % M;
         }
@@ -362,7 +330,7 @@ namespace MathLibrary
             for (int i = 0; i < a.Length; i++)
             {
                 Mi = M / m[i];
-                result += a[i] * Mi * Mi.InverseElement(m[i]) % M;
+                result += a[i] * Mi * Mi.Inverse(m[i]) % M;
             }
             return result % M;
         }
@@ -400,7 +368,7 @@ namespace MathLibrary
                 x[i] = system[i].a;
                 for (int j = 0; j < i; ++j)
                 {
-                    x[i] = system[j].m.InverseElement(system[i].m) * (x[i] - x[j]);
+                    x[i] = system[j].m.Inverse(system[i].m) * (x[i] - x[j]);
 
                     x[i] = x[i] % system[i].m;
                     if (x[i] < 0)
@@ -421,7 +389,7 @@ namespace MathLibrary
                 x[i] = a[i];
                 for (int j = 0; j < i; ++j)
                 {
-                    x[i] = m[j].InverseElement(m[i]) * (x[i] - x[j]);
+                    x[i] = m[j].Inverse(m[i]) * (x[i] - x[j]);
 
                     x[i] = x[i] % m[i];
                     if (x[i] < 0)
@@ -433,15 +401,15 @@ namespace MathLibrary
             return result % n;
         }
 
-        public static (BigInteger a, BigInteger b) CornacchiasAlgorithm(BigInteger d, BigInteger p)
+        public static (BigInteger a, BigInteger b) CornacchiasAlgorithm(BigInteger d, int p)
         {
             var t = p - d;
-            (BigInteger a, BigInteger b) r = TonelliShanksMethod(t, p);
+            (BigInteger a, BigInteger b) r = TonelliShanks(t, p);
             r.b = BigInteger.Min(r.a, r.b);
             if (r.a == 0)
                 return (0, 0);
             r.a = p;
-            var sqrtp = p.FloorSqrt();
+            var sqrtp = (int)Math.Floor(Math.Sqrt(p));
             while (r.b > sqrtp)
                 r = (r.b, r.a % r.b);
             t = p - BigInteger.Pow(r.b, 2);
@@ -504,49 +472,8 @@ namespace MathLibrary
             var x = BigInteger.ModPow(a, T + 1 >> 1, p) * BigInteger.ModPow(D, mi >> 1, p) % p;
             return (x, p - x);
         }
-
-        public static (BigInteger, BigInteger) TonelliShanksMethod(BigInteger a, BigInteger p)
-        {
-            if (LegendreSymbol(a, p) != 1)
-                return (0, 0);
-            if (p == 2)
-                return (a % p, a % p);
-            BigInteger Q = p - 1;
-            BigInteger S = 0;
-            do
-            {
-                Q >>= 1;
-                S++;
-            } while (Q % 2 == 0);
-            BigInteger z = 2;
-            while (LegendreSymbol(z, p) != -1)
-                z++;
-            BigInteger M = S;
-            BigInteger c = BigInteger.ModPow(z, Q, p);
-            BigInteger t = BigInteger.ModPow(a, Q, p);
-            BigInteger R = BigInteger.ModPow(a, Q + 1 >> 1, p);
-            while (true)
-            {
-                if (t == 0)
-                    return (0, 0);
-                if (t == 1)
-                    return (R, p - R);
-                int i = 1;
-                while (BigInteger.ModPow(t, 1 << i, p) != 1)
-                    i++;
-
-                BigInteger b = BigInteger.ModPow(c, 1 << (int)(M - i - 1), p);
-                M = i;
-                c = BigInteger.ModPow(b, 2, p);
-                t = t * c % p;
-                R = R * b % p;
-            }
-        }
-
         public static (BigInteger, BigInteger) CipollaMethod(BigInteger a, BigInteger p)
         {
-            if (LegendreSymbol(a, p) != 1)
-                return (0, 0);
             BigInteger t = 0;
             BigInteger f = BigInteger.Pow(t, 2) - a + p;
             while (LegendreSymbol(f, p) != -1)

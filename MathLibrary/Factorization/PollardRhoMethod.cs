@@ -21,7 +21,7 @@ namespace MathLibrary.Factorization
                 y = (t * (t + 2) + 2) % n;
                 gcd = BigInteger.GreatestCommonDivisor(n, BigInteger.Abs(x - y));
             } while (gcd == 1 || gcd == n);
-            return new[] { gcd, n / gcd };
+            return [gcd, n / gcd];
         }
 
         public static BigInteger[] ModyfiedPollardRhoMethod(BigInteger n)
@@ -42,7 +42,7 @@ namespace MathLibrary.Factorization
                 i++;
                 gcd = BigInteger.GreatestCommonDivisor(n, BigInteger.Abs(x - y));
             } while (gcd == 1 || gcd == n);
-            return new[] { gcd, n / gcd };
+            return [gcd, n / gcd];
         }
     }
 }

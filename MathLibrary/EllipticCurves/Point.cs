@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MathLibrary.Functions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -32,10 +33,10 @@ namespace MathLibrary.EllipticCurves
             {
                 if ((p1.Y + p2.Y) % n == 0)
                     return Infinity();
-                m = (3 * p1.X * p1.X + a) * (2 * p1.Y).InverseElement(n);
+                m = (3 * p1.X * p1.X + a) * (2 * p1.Y).Inverse(n);
             }
             else
-                m = (p2.Y - p1.Y) * (p2.X - p1.X).InverseElement(n);
+                m = (p2.Y - p1.Y) * (p2.X - p1.X).Inverse(n);
 
             BigInteger x = (m * m - p1.X - p2.X) % n;
             BigInteger y = (m * (p1.X - x) - p1.Y) % n;

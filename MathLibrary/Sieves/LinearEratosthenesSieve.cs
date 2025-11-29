@@ -12,10 +12,10 @@ namespace MathLibrary
         public static int[] LinearEratosthenesSieve(int limit, Predicate<int>? predicate = null)
         {
             if (limit < 2)
-                return Array.Empty<int>();
+                return [];
 
-            BitArray isComposite = new BitArray(limit + 1);
-            List<int> primes = new List<int>();
+            var isComposite = new BitArray(limit + 1);
+            var primes = new List<int>();
             int sqrt = (int)Math.Sqrt(limit);
             for (int i = 2; i <= sqrt; i++)
             {
@@ -31,7 +31,7 @@ namespace MathLibrary
             for (int i = Math.Max(2, sqrt + 1); i <= limit; i++)
                 if (!isComposite[i] && (predicate == null || predicate(i)))
                     primes.Add(i);
-            return primes.ToArray();
+            return [.. primes];
         }
     }
 }

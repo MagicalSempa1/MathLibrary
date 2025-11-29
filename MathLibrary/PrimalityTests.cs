@@ -1,4 +1,6 @@
-﻿using System;
+﻿using MathLibrary.Extensions;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -58,39 +60,50 @@ namespace MathLibrary
             return b == F - 1;
         }
 
-        public static bool IsStrongProbablePrime(BigInteger b, BigInteger n)
+        public static bool IsStrongProbablePrime(BigInteger n, BigInteger b)
         {
-            if (n.IsEven)
-                return n == 2;
-            if (BigInteger.GreatestCommonDivisor(b, n) > 1)
+            if (n < 2) return false;
+            if (n.IsEven) return n == 2;
+            if (BigInteger.GreatestCommonDivisor(b, n) != 1)
                 return false;
-            var r = (n - 1) >> 1;
-            for (; r.IsEven; r >>= 1)
+
+            BigInteger d = n - 1;
+            int s = 0;
+            while (d.IsEven)
             {
-                if (BigInteger.ModPow(b, r, n) == n - 1)
+                d >>= 1;
+                s++;
+            }
+
+            var x = BigInteger.ModPow(b, d, n);
+            if (x == 1 || x == n - 1)
+                return true;
+
+            for (int i = 1; i < s; i++)
+            {
+                x = x * x % n;
+                if (x == n - 1)
                     return true;
             }
-            var t = BigInteger.ModPow(b, r, n);
-            if (t == 1 | t == n - 1)
-                return true;
+
             return false;
         }
 
         public static bool IsProbableLucasPrime(BigInteger P, BigInteger Q, BigInteger n)
         {
             BigInteger D = P * P - Q << 2;
-            BigInteger k = n - ArithmeticFunctions.JacobiSymbol(D, n);
+            BigInteger k = n - Functions.ArithmeticFunctions.MollerJacobiSymbol(D, n);
             return Sequences.U(k, P, Q) % n == 0;
         }
 
         public static bool BPSWTest(BigInteger n)
         {
-            if (!IsStrongProbablePrime(2, n))
+            if (!IsStrongProbablePrime(n, 2))
                 return false;
             if (n.IsSqrt())
                 return false;
             BigInteger D = 5, P = 1, Q;
-            while (ArithmeticFunctions.JacobiSymbol(D, n) != -1)
+            while (Functions.ArithmeticFunctions.MollerJacobiSymbol(D, n) != -1)
                 D = D > 0 ? -(D + 2) : -(D - 2);
             Q = (1 - D) >> 4;
             BigInteger s = (n - 1) >> 1;
@@ -104,37 +117,35 @@ namespace MathLibrary
 
         public static bool MillerTest(BigInteger n)
         {
-            if (n % 2 == 0)
+            if (n.IsEven)
                 return n == 2;
-            int limit;
             int[] bases;
+
             if (n < 2047)
-                bases = new[] { 2 };
+                bases = [2];
             else if (n < 1373653)
-                bases = new[] { 2, 3 };
+                bases = [2, 3];
             else if (n < 25326001)
-                bases = new[] { 2, 3, 5 };
+                bases = [2, 3, 5];
             else if (n < 3215031751)
-                bases = new[] { 2, 3, 5, 7 };
+                bases = [2, 3, 5, 7];
             else if (n < 2152302898747)
-                bases = new[] { 2, 3, 5, 7, 11 };
+                bases = [2, 3, 5, 7, 11];
             else if (n < 3474749660383)
-                bases = new[] { 2, 3, 5, 7, 11, 13 };
+                bases = [2, 3, 5, 7, 11, 13];
             else if (n < 3825123056546413051)
-                bases = new[] { 2, 3, 5, 7, 11, 13, 17, 19, 23 };
-            else if (n < BigInteger.Parse("318665857834031151167461"))
-                bases = new[] { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37 };
-            else if (n < BigInteger.Parse("3317044064679887385961981"))
-                bases = new[] { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41 };
-            else if (n < BigInteger.Parse("1543267864443420616877677640751301"))
-                bases = new[] { 2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61 };
+                bases = [2, 3, 5, 7, 11, 13, 17, 19, 23];
+            else if (n < new BigInteger(new byte[] { 229, 183, 133, 252, 249, 23, 40, 233, 122, 67 }))
+                bases = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37];
+            else if (n < new BigInteger(new byte[] { 253, 165, 16, 36, 178, 197, 173, 81, 105, 190, 2 }))
+                bases = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41];
+            else if (n < new BigInteger(new byte[] { 197, 24, 149, 180, 142, 107, 106, 20, 151, 113, 105, 199, 22, 76 }))
+                bases = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61];
             else
-            {
-                limit = (int)(Math.Ceiling(BigInteger.Log(n) * Math.Log(BigInteger.Log(n, 2))));
-                bases = Sieves.AtkinSieve(limit);
-            }
+                bases = Sieves.AtkinSieve((int)Math.Ceiling(BigInteger.Log(n) * Math.Log(BigInteger.Log(n, 2))));
+
             for (int i = 0; i < bases.Length; i++)
-                if (!IsStrongProbablePrime(bases[i], n))
+                if (!IsStrongProbablePrime(n, bases[i]))
                     return false;
             return true;
         }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MathLibrary.Extensions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -117,7 +118,7 @@ namespace MathLibrary
                     return c[3][0] + h0 * (c[2][0] + h0 * (c[1][0] + h0 * c[0][0] / 3.0) / 2.0);
                 }
                 for (int i = 0; i < xi.Length - 1; i++)
-                {                  
+                {
                     if (x < xi[i + 1])
                     {
                         var hi = x - xi[i];

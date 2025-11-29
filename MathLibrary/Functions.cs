@@ -2,9 +2,9 @@
 
 namespace MathLibrary
 {
-    public static class Functions
+    public static class OtherFunctions
     {
-        public static BigInteger Factorial(long n)
+        public static BigInteger Factorial(int n)
         {
             var primes = Sieves.AtkinSieve(n);
             BigInteger result = 1;
@@ -100,16 +100,16 @@ namespace MathLibrary
         {
             if (x == y)
                 return x;
-            double a_0 = x, a_1 = 0;
-            double g_0 = y, g_1 = 0;
+            double a0 = x, a1 = 0;
+            double g0 = y, g1 = 0;
             for (int i = 0; i < n; i++)
             {
-                a_1 = (a_0 + g_0) / 2;
-                g_1 = Math.Sqrt(a_0 * g_0);
-                a_0 = a_1;
-                g_0 = g_1;
+                a1 = (a0 + g0) / 2;
+                g1 = Math.Sqrt(a0 * g0);
+                a0 = a1;
+                g0 = g1;
             }
-            return (a_1 + g_1) / 2;
+            return (a1 + g1) / 2;
         }
     }
 }

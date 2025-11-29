@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using MathLibrary.Extensions;
 using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MathLibrary.Factorization
 {
@@ -12,8 +8,8 @@ namespace MathLibrary.Factorization
         public static BigInteger[] LehmanMethod(BigInteger n)
         {
             if (PrimalityTests.MillerTest(n))
-                return new[] { n };
-            List<BigInteger> primes = new List<BigInteger>();
+                return [n];
+            var primes = new List<BigInteger>();
             BigInteger qbrt = n.FloorNroot(3);
             if (qbrt <= uint.MaxValue)
                 primes.AddRange(PartialTrialDivision(ref n, (uint)qbrt));
@@ -23,29 +19,87 @@ namespace MathLibrary.Factorization
                 primes.AddRange(PartialTrialDivision(ref n, (UInt128)qbrt));
             else
                 primes.AddRange(PartialTrialDivision(ref n, qbrt));
+
+            if (n == 1) return [.. primes];
+
             if (primes.Count > 0 && PrimalityTests.MillerTest(n))
             {
                 primes.Add(n);
-                return primes.ToArray();
+                return [.. primes];
             }
             qbrt = n.FloorNroot(3);
-            var sixroot = n.CeillingNroot(6);
-            BigInteger sqrtK, L, A, f;
+
+            if (qbrt <= uint.MaxValue)
+                return LehmanMethodCore(ref n, ref primes, (uint)qbrt);
+            else if (qbrt <= ulong.MaxValue)
+                return LehmanMethodCore(ref n, ref primes, (ulong)qbrt);
+            else if (qbrt <= UInt128.MaxValue)
+                return LehmanMethodCore(ref n, ref primes, (UInt128)qbrt);
+            else
+                return LehmanMethodCore(ref n, ref primes, qbrt);
+        }
+
+        private static BigInteger[] LehmanMethodCore(ref BigInteger n, ref List<BigInteger> primes, uint qbrt)
+        {
+            BigInteger t, A, f;
             BigInteger B = 0;
-            BigInteger t = n << 2;
-            for (BigInteger k = 1; k <= qbrt; k++)
+            BigInteger n4 = n << 2;
+            uint sqrtK, L;
+            uint sixroot = (uint)n.CeilingNroot(6);
+            for (uint k = 1; k <= qbrt; k++)
             {
-                sqrtK = k.FloorSqrt();
-                L = sixroot / (sqrtK << 2) + 1;
-                A = t.FloorSqrt();
-                for (BigInteger d = 0; d <= L; d++)
+                sqrtK = (uint)Math.Floor(Math.Sqrt(k));
+                L = sixroot / (sqrtK << 2);
+                if (L == 0) L = 1;
+                t = k * n4;
+                A = t.CeilingSqrt();
+                f = A * A - t;
+                var S = (A << 1) + 1;
+                for (uint d = 0; d < L; d++)
                 {
-                    f = BigInteger.Pow(A, 2) - t;
-                    if (f < 0)
+                    if (f.IsSqrt(ref B))
                     {
-                        A++;
-                        continue;
+                        var gcd = BigInteger.GreatestCommonDivisor(A - B, n);
+                        if (gcd != 1 && gcd != n)
+                        {
+                            primes.Add(gcd);
+                            primes.Add(n / gcd);
+                            return [.. primes];
+                        }
+                        gcd = BigInteger.GreatestCommonDivisor(A + B, n);
+                        if (gcd != 1 && gcd != n)
+                        {
+                            primes.Add(gcd);
+                            primes.Add(n / gcd);
+                            return [.. primes];
+                        }
                     }
+                    f += S;
+                    S += 2;
+                    A++;
+                }
+            }
+            return [.. primes];
+        }
+
+        private static BigInteger[] LehmanMethodCore(ref BigInteger n, ref List<BigInteger> primes, ulong qbrt)
+        {
+            BigInteger t, A, f;
+            BigInteger B = 0;
+            BigInteger n4 = n << 2;
+            ulong sqrtK, L;
+            var sixroot = (ulong)n.CeilingNroot(6);
+            for (ulong k = 1; k <= qbrt; k++)
+            {
+                sqrtK = (ulong)Math.Floor(Math.Sqrt(k));
+                L = sixroot / (sqrtK << 2);
+                if (L == 0) L = 1;
+                t = k * n4;
+                A = t.CeilingSqrt();
+                f = A * A - t;
+                var S = (A << 1) + 1;
+                for (ulong d = 0; d < L; d++)
+                {
                     if (f.IsSqrt(ref B))
                     {
                         BigInteger gcd = BigInteger.GreatestCommonDivisor(A - B, n);
@@ -53,7 +107,7 @@ namespace MathLibrary.Factorization
                         {
                             primes.Add(gcd);
                             primes.Add(n / gcd);
-                            return primes.ToArray();
+                            return [.. primes];
                         }
                         gcd = BigInteger.GreatestCommonDivisor(A + B, n);
                         if (gcd != 1 && gcd != n)
@@ -63,13 +117,98 @@ namespace MathLibrary.Factorization
                             return primes.ToArray();
                         }
                     }
+                    f += S;
+                    S += 2;
                     A++;
                 }
-                t += n << 2;
             }
-            primes.Add(n);
-            return primes.ToArray();
+            return [.. primes];
         }
 
+        private static BigInteger[] LehmanMethodCore(ref BigInteger n, ref List<BigInteger> primes, UInt128 qbrt)
+        {
+            BigInteger t, A, f;
+            BigInteger B = 0;
+            BigInteger n4 = n << 2;
+            UInt128 sqrtK, L;
+            var sixroot = (UInt128)n.CeilingNroot(6);
+            for (ulong k = 1; k <= qbrt; k++)
+            {
+                sqrtK = (UInt128)Math.Floor(Math.Sqrt(k));
+                L = sixroot / (sqrtK << 2);
+                if (L == 0) L = 1;
+                t = k * n4;
+                A = t.CeilingSqrt();
+                f = A * A - t;
+                var S = (A << 1) + 1;
+                for (UInt128 d = 0; d < L; d++)
+                {
+                    if (f.IsSqrt(ref B))
+                    {
+                        BigInteger gcd = BigInteger.GreatestCommonDivisor(A - B, n);
+                        if (gcd != 1 && gcd != n)
+                        {
+                            primes.Add(gcd);
+                            primes.Add(n / gcd);
+                            return [.. primes];
+                        }
+                        gcd = BigInteger.GreatestCommonDivisor(A + B, n);
+                        if (gcd != 1 && gcd != n)
+                        {
+                            primes.Add(gcd);
+                            primes.Add(n / gcd);
+                            return [.. primes];
+                        }
+                    }
+                    f += S;
+                    S += 2;
+                    A++;
+                }
+            }
+            return [.. primes];
+        }
+
+        private static BigInteger[] LehmanMethodCore(ref BigInteger n, ref List<BigInteger> primes, BigInteger qbrt)
+        {
+            BigInteger t, A, f;
+            BigInteger B = 0;
+            BigInteger n4 = n << 2;
+            BigInteger sqrtK, L;
+            var sixroot = n.CeilingNroot(6);
+            for (BigInteger k = 1; k <= qbrt; k++)
+            {
+                sqrtK = k.FloorSqrt();
+                L = sixroot / (sqrtK << 2);
+                if (L == 0) L = 1;
+                t = k * n4;
+                A = t.CeilingSqrt();
+                f = A * A - t;
+                var S = (A << 1) + 1;
+                for (BigInteger d = 0; d < L; d++)
+                {
+                    if (f.IsSqrt(ref B))
+                    {
+                        var gcd = BigInteger.GreatestCommonDivisor(A - B, n);
+                        if (gcd != 1 && gcd != n)
+                        {
+                            primes.Add(gcd);
+                            primes.Add(n / gcd);
+                            return [.. primes];
+                        }
+                        gcd = BigInteger.GreatestCommonDivisor(A + B, n);
+                        if (gcd != 1 && gcd != n)
+                        {
+                            primes.Add(gcd);
+                            primes.Add(n / gcd);
+                            return [.. primes];
+                        }
+                    }
+                    f += S;
+                    S += 2;
+                    A++;
+                }
+            }
+            return [.. primes];
+        }
     }
 }
